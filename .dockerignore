@@ -1,0 +1,33 @@
+# Virtual environment
+venv/
+env/
+ENV/
+*.bak/
+
+# Environment variables / secrets
+.env
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test files
+test.py
+test_*.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation / unnecessary files
+README.md
