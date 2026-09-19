@@ -20,6 +20,8 @@ __pycache__/
 # Test files
 test.py
 test_*.py
+mcp_client_test.py
+tools/
 
 # IDE
 .vscode/
