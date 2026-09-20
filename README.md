@@ -50,37 +50,55 @@ TravelMind-AI uses a supervisor-based multi-agent architecture. The supervisor d
 
 ```mermaid
 flowchart TD
-    A["User Request"] --> B["Input Validation & Guardrails"]
+    A[User Request] --> B[Input Validation]
+    B -->|Valid| C[Supervisor Agent]
+    B -->|Invalid| X[Request Blocked]
 
-    B -->|Valid| C["Supervisor Agent<br/>LangGraph"]
-    B -->|Invalid / Unsafe| X["Request Blocked"]
+    C --> D[Flight Agent]
+    C --> E[Hotel Agent]
+    C --> F[Weather Agent]
+    C --> G[Budget Agent]
+    C --> H[Itinerary Agent]
 
-    C --> D["Flight Agent"]
-    C --> E["Hotel Agent"]
-    C --> F["Weather Agent"]
-    C --> G["Budget Agent"]
-    C --> H["Itinerary Agent"]
+    D --> D1[AviationStack MCP]
+    E --> E1[Tavily MCP]
+    F --> F1[Weather MCP]
+    G --> G1[LLM Tools]
+    H --> H1[LLM Tools]
 
-    D --> D1["AviationStack MCP"]
-    E --> E1["Tavily MCP"]
-    F --> F1["Custom Weather MCP<br/>OpenWeather"]
-    G --> G1["LLM / MCP Tools"]
-    H --> H1["LLM / MCP Tools"]
-
-    D1 --> I["Shared Travel State"]
+    D1 --> I[Shared Travel State]
     E1 --> I
     F1 --> I
     G1 --> I
     H1 --> I
 
-    I["TravelState<br/>PostgreSQL"] --> J["Generated Itinerary"]
+    I --> J[Generated Itinerary]
+    J --> K[Human Review]
 
-    J --> K{"Human Review"}
-
-    K -->|Approve| L["Final Travel Plan"]
+    K -->|Approve| L[Final Travel Plan]
     K -->|Request Changes| C
 
-    L --> M["Display to User"]
+    L --> M[Display to User]
+
+    subgraph Workflow[LangGraph Workflow]
+        C
+        D
+        E
+        F
+        G
+        H
+        I
+        J
+        K
+    end
+
+    subgraph Tools[External Tools]
+        D1
+        E1
+        F1
+        G1
+        H1
+    end
 ```
 
 ### Main Components
