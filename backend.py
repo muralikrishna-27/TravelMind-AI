@@ -116,7 +116,7 @@ class TravelState(TypedDict, total=False):
 
         llm_calls: int
 
-
+MAX_TRIP_DAYS = 7
 # helpers*
 KNOWN_AGENTS = {
         "flight_agent",
@@ -158,6 +158,15 @@ def _json_from_llm(text: str) -> dict[str, Any]:
         return json.loads(text[start : end + 1])
 
 
+def _validate_trip_duration(query: str) -> str | None:
+    match = re.search(r"\b(\d+)\s*(?:day|days)\b", query, re.IGNORECASE)
+    if match:
+        days = int(match.group(1))
+        if days > MAX_TRIP_DAYS:
+            return f"Trip duration cannot exceed {MAX_TRIP_DAYS} days. Please choose a trip between 1 and {MAX_TRIP_DAYS} days."
+    return None
+
+
 def _empty_constraints() -> dict[str, Any]:
         return {
                 "destination": "",
@@ -192,6 +201,19 @@ def _compact_text(value: Any, max_chars: int = 6000) -> str:
 def supervisor_agent(state: TravelState):
         query = state["user_query"]
         llm_calls = state.get("llm_calls", 0)
+        duration_error = _validate_trip_duration(query)
+        if duration_error:
+            return {
+                "guardrail_allowed": False,
+                "guardrail_reason": duration_error,
+                "selected_agents": [],
+                "trip_constraints": _empty_constraints(),
+                "supervisor_reasoning": duration_error,
+                "final_response": duration_error,
+                "messages": [AIMessage(content=duration_error)],
+                "llm_calls": llm_calls,
+            }
+
         guardrail_prompt = f"""
 Determine whether the following request belongs to travel planning or travel
 information. Valid requests can include destinations, flights, hotels, weather,

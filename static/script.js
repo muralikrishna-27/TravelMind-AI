@@ -209,9 +209,26 @@ async function submitApproval(approved) {
       throw new Error(data.error || "Could not resume the travel workflow.");
     }
 
+    currentThreadId = data.thread_id;
+    localStorage.setItem("travel_thread_id", currentThreadId);
+
     showWorkflow(data);
-    hideApproval();
-    showResult(data.answer, data.thread_id, false);
+
+    if (data.requires_approval) {
+      showResult(
+        data.itinerary || data.answer,
+        data.thread_id,
+        true
+      );
+      showApproval(data);
+    } else {
+      hideApproval();
+      showResult(
+        data.answer,
+        data.thread_id,
+        false
+      );
+    }
   } catch (error) {
     showError(error.message);
   } finally {
