@@ -147,4 +147,4 @@ if __name__ == "__main__":
     # mcp_client.py launches this as a stdio subprocess.
     mcp.run(
         transport="stdio",
-    )
+    ) 
