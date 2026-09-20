@@ -994,17 +994,18 @@ Create the complete draft for human review.
         "Approve it if you are satisfied, or provide feedback "
         "for another revision."
     )
-
+    print("ITINERARY AGENT FINISHED - RETURNING TO HITL", flush=True)
     return {
-        "itinerary": complete_itinerary,
-        "approval_request": approval_request,
-        "messages": [
-            AIMessage(
-                content="Travel itinerary draft created for human review."
-            )
-        ],
-        "llm_calls": state.get("llm_calls", 0) + 1,
-    }
+    "itinerary": complete_itinerary,
+    "approval_request": approval_request,
+    "approved": False,
+    "messages": [
+        AIMessage(
+            content="Travel itinerary draft created for human review."
+        )
+    ],
+    "llm_calls": state.get("llm_calls", 0) + 1,
+}
 
 
 def human_approval_agent(state: TravelState):
@@ -1040,8 +1041,10 @@ def human_approval_agent(state: TravelState):
 
 
         approved = bool(review.get("approved", False))
-
         human_feedback = str(review.get("feedback", "")).strip()
+        print("HITL REVIEW:", review, flush=True)
+        print("HITL APPROVED:", approved, flush=True)
+        print("HITL FEEDBACK:", human_feedback, flush=True)
 
 
 
@@ -1202,65 +1205,49 @@ graph.add_node("weather_agent", weather_agent)
 graph.add_node("budget_agent", budget_agent)
 
 graph.add_node("itinerary_agent", itinerary_agent)
-
 graph.add_node("human_approval", human_approval_agent)
-
 graph.add_node("final_agent", final_agent)
-
-
 
 graph.add_edge(START, "supervisor")
 
 graph.add_conditional_edges("supervisor", route_from_supervisor, ROUTE_MAP)
 
-
-
 graph.add_conditional_edges(
-
-        "flight_agent", route_after_agent("flight_agent"), ROUTE_MAP
-
+    "flight_agent",
+    route_after_agent("flight_agent"),
+    ROUTE_MAP
 )
 
 graph.add_conditional_edges(
-
-        "hotel_agent", route_after_agent("hotel_agent"), ROUTE_MAP
-
+    "hotel_agent",
+    route_after_agent("hotel_agent"),
+    ROUTE_MAP
 )
 
 graph.add_conditional_edges(
-
-        "weather_agent", route_after_agent("weather_agent"), ROUTE_MAP
-
+    "weather_agent",
+    route_after_agent("weather_agent"),
+    ROUTE_MAP
 )
 
 graph.add_conditional_edges(
-
-        "budget_agent", route_after_agent("budget_agent"), ROUTE_MAP
-
+    "budget_agent",
+    route_after_agent("budget_agent"),
+    ROUTE_MAP
 )
-
-
 
 graph.add_edge("itinerary_agent", "human_approval")
 
 graph.add_conditional_edges(
-
-        "human_approval",
-
-        route_after_human_approval,
-
-        {
-
-                "itinerary_agent": "itinerary_agent",
-
-                "final_agent": "final_agent",
-
-        },
-
+    "human_approval",
+    route_after_human_approval,
+    {
+        "itinerary_agent": "itinerary_agent",
+        "final_agent": "final_agent",
+    },
 )
 
 graph.add_edge("final_agent", END)
-
 graph.add_edge("guardrail_blocked", END)
 
 
@@ -1468,43 +1455,38 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
 
 
 def resume_travel_agent(
-
-        thread_id: str,
-
-        approved: bool,
-
-        feedback: str = "",
-
+    thread_id: str,
+    approved: bool,
+    feedback: str = "",
 ):
+    """Resume the paused LangGraph thread after human review."""
 
-        """Resume the paused LangGraph thread after human review."""
+    if not thread_id:
+        raise ValueError("thread_id is required to resume a travel plan.")
 
-        if not thread_id:
+    config = {"configurable": {"thread_id": thread_id}}
 
-                raise ValueError("thread_id is required to resume a travel plan.")
+    print("RESUME INPUT:", {
+        "approved": approved,
+        "feedback": feedback.strip()
+    }, flush=True)
 
+    result = travel_graph.invoke(
+        Command(
+            resume={
+                "approved": approved,
+                "feedback": feedback.strip(),
+            }
+        ),
+        config=config,
+    )
 
+    print("RESUME RESULT KEYS:", list(result.keys()), flush=True)
+    print("RESUME INTERRUPT:", result.get("__interrupt__"), flush=True)
 
-        config = {"configurable": {"thread_id": thread_id}}
+    snapshot = travel_graph.get_state(config)
 
-        result = travel_graph.invoke(
+    print("RESUME SNAPSHOT NEXT:", snapshot.next, flush=True)
+    print("RESUME SNAPSHOT TASKS:", snapshot.tasks, flush=True)
 
-                Command(
-
-                        resume={
-
-                                "approved": approved,
-
-                                "feedback": feedback.strip(),
-
-                        }
-
-                ),
-
-                config=config,
-
-        )
-
-
-
-        return _serialize_result(result, thread_id)
+    return _serialize_result(result, thread_id)

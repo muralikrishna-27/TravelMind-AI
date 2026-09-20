@@ -102,12 +102,24 @@ function showResult(answer, threadId, isDraft = false) {
 }
 
 function showApproval(data) {
+  console.log("SHOW APPROVAL CALLED");
+  console.log("APPROVAL DATA:", data);
+
   waitingForApproval = true;
+
   const section = document.getElementById("approvalSection");
   const approvalRequest = document.getElementById("approvalRequest");
+
+  console.log("APPROVAL SECTION:", section);
+  console.log("BEFORE CLASSES:", section.className);
+
   approvalRequest.textContent = data.approval_request ||
     "Approve the draft or provide feedback before the final plan is generated.";
+
   section.classList.remove("hidden");
+
+  console.log("AFTER CLASSES:", section.className);
+  console.log("DISPLAY:", window.getComputedStyle(section).display);
 }
 
 function hideApproval() {
@@ -147,6 +159,9 @@ async function sendMessage() {
     });
 
     const data = await response.json();
+    console.log("APPROVAL RESPONSE:", data);
+    console.log("REQUIRES APPROVAL:", data.requires_approval);
+    console.log("APPROVAL ITINERARY:", data.itinerary);
 
     if (!response.ok || !data.success) {
       throw new Error(data.error || "Something went wrong.");
@@ -205,6 +220,10 @@ async function submitApproval(approved) {
 
     const data = await response.json();
 
+    console.log("SECOND HITL RESPONSE:", data);
+    console.log("REQUIRES APPROVAL:", data.requires_approval);
+    console.log("SECOND HITL ITINERARY:", data.itinerary);
+
     if (!response.ok || !data.success) {
       throw new Error(data.error || "Could not resume the travel workflow.");
     }
@@ -215,6 +234,7 @@ async function submitApproval(approved) {
     showWorkflow(data);
 
     if (data.requires_approval) {
+      console.log("SHOWING SECOND HITL");
       showResult(
         data.itinerary || data.answer,
         data.thread_id,
