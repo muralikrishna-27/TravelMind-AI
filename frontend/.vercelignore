@@ -1,0 +1,23 @@
+# Dependencies & build output
+node_modules
+.next
+out
+build
+coverage
+
+# Testing & Playwright artifacts
+tests
+test-results
+playwright-report
+playwright.config.ts
+vitest.config.ts
+
+# Local environment & TypeScript build cache
+.env.local
+.env.development*
+.env.test*
+*.tsbuildinfo
+
+# OS & editor files
+.DS_Store
+*.log

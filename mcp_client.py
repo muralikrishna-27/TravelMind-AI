@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import sys
@@ -217,6 +218,33 @@ async def get_all_tools() -> None:
 
 
 
+def _unwrap_mcp_result(result: Any, *, parse_json: bool = False) -> Any:
+    """Normalize MCP tool outputs from langchain-mcp-adapters content blocks."""
+    if isinstance(result, list):
+        text_parts: list[str] = []
+        for item in result:
+            if isinstance(item, dict) and "text" in item:
+                text_parts.append(str(item["text"]))
+            elif isinstance(item, str):
+                text_parts.append(item)
+        if text_parts:
+            combined = "\n".join(text_parts).strip()
+            if parse_json:
+                try:
+                    return json.loads(combined)
+                except Exception:
+                    return combined
+            return combined
+
+    if parse_json and isinstance(result, str):
+        try:
+            return json.loads(result)
+        except Exception:
+            return result
+
+    return result
+
+
 # Tavily MCP
 
 async def tavily_mcp_search(query: str):
@@ -225,11 +253,12 @@ async def tavily_mcp_search(query: str):
         "tavily_search",
     )
 
-    return await search_tool.ainvoke(
+    raw = await search_tool.ainvoke(
         {
             "query": query,
         }
     )
+    return _unwrap_mcp_result(raw, parse_json=True)
 
 
 # AviationStack MCP
@@ -239,13 +268,14 @@ async def aviation_mcp_call(
     tool_args: dict[str, Any] | None = None,
 ):
     aviation_tool = await _get_server_tool(
-        "aviationstack",
+        "Aviationstack MCP",
         tool_name,
     )
 
-    return await aviation_tool.ainvoke(
+    raw = await aviation_tool.ainvoke(
         tool_args or {}
     )
+    return _unwrap_mcp_result(raw, parse_json=True)
 
 
 # Weather MCP
@@ -256,11 +286,12 @@ async def weather_mcp_search(city: str):
         "get_current_weather",
     )
 
-    return await weather_tool.ainvoke(
+    raw = await weather_tool.ainvoke(
         {
             "city": city,
         }
     )
+    return _unwrap_mcp_result(raw, parse_json=False)
 
 
 async def forecast_mcp_search(city: str):
@@ -269,11 +300,12 @@ async def forecast_mcp_search(city: str):
         "get_forecast",
     )
 
-    return await forecast_tool.ainvoke(
+    raw = await forecast_tool.ainvoke(
         {
             "city": city,
         }
     )
+    return _unwrap_mcp_result(raw, parse_json=False)
 
 
 # Destination extractor
