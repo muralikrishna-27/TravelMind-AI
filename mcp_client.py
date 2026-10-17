@@ -59,9 +59,12 @@ def _subprocess_env(**updates: str | None) -> dict[str, str]:
     return env
 
 
+FAST_MODEL = os.getenv("FAST_MODEL", "openai/gpt-oss-20b")
+
 llm = ChatGroq(
-    model="openai/gpt-oss-120b",
+    model=FAST_MODEL,
     api_key=_require_env("GROQ_API_KEY", GROQ_API_KEY),
+    temperature=0,
 )
 
 # MCP client
@@ -323,9 +326,12 @@ Do not add any explanation.
 
     response = llm.invoke(prompt)
 
-    destination = str(
-        response.content
-    ).strip()
+    destination = (
+        str(response.content)
+        .strip()
+        .strip('"\'`')
+        .rstrip(".")
+    )
 
     if not destination:
         raise ValueError(

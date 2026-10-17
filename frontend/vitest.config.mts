@@ -8,10 +8,12 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     include: ["tests/unit/**/*.test.{ts,tsx}"],
+    setupFiles: [path.resolve(import.meta.dirname, "tests/setup-shim.cjs")],
+    execArgv: ["--require", path.resolve(import.meta.dirname, "tests/setup-shim.cjs")],
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./"),
+      "@": path.resolve(import.meta.dirname, "./"),
     },
   },
 });

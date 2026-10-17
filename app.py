@@ -1,3 +1,4 @@
+import os
 import traceback
 
 import uvicorn
@@ -13,6 +14,7 @@ from backend import (
     start_resume_travel_agent_stream,
     get_trip_snapshot,
     subscribe_trip_events,
+    is_postgres_connected,
 )
 
 # This is kept from the original project to allow the existing synchronous
@@ -30,12 +32,16 @@ app = FastAPI(
     version="2.0.0",
 )
 
+allowed_origins_env = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$" if os.getenv("ALLOW_VERCEL_PREVIEWS", "true").lower() == "true" else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -203,6 +209,7 @@ async def health_check():
     return {
         "status": "ok",
         "message": "TravelMind AI API is running",
+        "checkpointer": "postgres" if is_postgres_connected() else "memory",
         "features": [
             "supervisor_agent",
             "input_guardrail",

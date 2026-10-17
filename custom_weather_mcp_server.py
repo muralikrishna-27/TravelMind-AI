@@ -87,13 +87,22 @@ def get_current_weather(
         },
     )
 
+    weather_list = data.get("weather", [])
+    condition = (
+        weather_list[0].get("description", "Unknown")
+        if weather_list and isinstance(weather_list[0], dict)
+        else "Unknown"
+    )
+    main_data = data.get("main", {})
+    wind_data = data.get("wind", {})
+
     return {
-        "city": data["name"],
-        "temperature_c": data["main"]["temp"],
-        "feels_like_c": data["main"]["feels_like"],
-        "humidity": data["main"]["humidity"],
-        "condition": data["weather"][0]["description"],
-        "wind_speed": data["wind"]["speed"],
+        "city": data.get("name", city),
+        "temperature_c": main_data.get("temp", "N/A"),
+        "feels_like_c": main_data.get("feels_like", "N/A"),
+        "humidity": main_data.get("humidity", "N/A"),
+        "condition": condition,
+        "wind_speed": wind_data.get("speed", "N/A"),
     }
 
 
@@ -122,23 +131,27 @@ def get_forecast(
         },
     )
 
-    forecast = [
-        {
-            "datetime": item["dt_txt"],
-            "temperature_c": item["main"]["temp"],
-            "condition": item["weather"][0]["description"],
-        }
-        for item in data.get("list", [])[:5]
-    ]
+    forecast = []
+    for item in data.get("list", [])[:5]:
+        if not isinstance(item, dict):
+            continue
+        w_list = item.get("weather", [])
+        c_desc = (
+            w_list[0].get("description", "Unknown")
+            if w_list and isinstance(w_list[0], dict)
+            else "Unknown"
+        )
+        main_item = item.get("main", {})
+        forecast.append(
+            {
+                "datetime": item.get("dt_txt", ""),
+                "temperature_c": main_item.get("temp", "N/A"),
+                "condition": c_desc,
+            }
+        )
 
     return {
-        "city": data.get(
-            "city",
-            {},
-        ).get(
-            "name",
-            city,
-        ),
+        "city": data.get("city", {}).get("name", city),
         "forecast": forecast,
     }
 
