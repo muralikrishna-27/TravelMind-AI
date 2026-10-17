@@ -16,6 +16,7 @@ import json
 import psycopg
 from psycopg.rows import dict_row
 from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.types import Command, interrupt
 from langchain_core.messages import (
@@ -40,12 +41,13 @@ os.environ["SSL_CERT_FILE"] = certifi.where()
 os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
 # db connection
-def get_database_url():
+def get_database_url() -> str | None:
         database_url = os.getenv("DATABASE_URL")
         if not database_url:
-                raise ValueError(
-                        "DATABASE_URL is missing. Please add your Render PostgreSQL External Database URL to .env"
-                )
+                return None
+        database_url = database_url.strip()
+        if not database_url:
+                return None
         if "sslmode=" not in database_url:
                 separator = "&" if "?" in database_url else "?"
                 database_url = f"{database_url}{separator}sslmode=require"
@@ -1445,28 +1447,40 @@ graph.add_edge("guardrail_blocked", END)
 
 
 
-# db connection*
-
+# Checkpointer setup with graceful fallback
 DATABASE_URL = get_database_url()
+checkpointer = None
+_conn = None
+
+if DATABASE_URL:
+        try:
+                _conn = psycopg.connect(
+                        DATABASE_URL,
+                        autocommit=True,
+                        row_factory=dict_row,
+                        connect_timeout=10,
+                )
+                checkpointer = PostgresSaver(_conn)
+                checkpointer.setup()
+                print("[CHECKPOINTER] Successfully connected to PostgreSQL checkpointer.", flush=True)
+        except Exception as exc:
+                print(
+                        f"[CHECKPOINTER WARNING] Failed to connect to PostgreSQL ({exc}). "
+                        "Falling back to in-memory MemorySaver.",
+                        flush=True,
+                )
+                checkpointer = MemorySaver()
+else:
+        print(
+                "[CHECKPOINTER] DATABASE_URL not configured. "
+                "Running with in-memory MemorySaver checkpointing.",
+                flush=True,
+        )
+        checkpointer = MemorySaver()
 
 
-
-_conn = psycopg.connect(
-
-        DATABASE_URL,
-
-        autocommit=True,
-
-        row_factory=dict_row
-
-)
-
-
-
-checkpointer = PostgresSaver(_conn)
-
-checkpointer.setup()
-
+def is_postgres_connected() -> bool:
+        return _conn is not None and isinstance(checkpointer, PostgresSaver)
 
 
 travel_graph = graph.compile(checkpointer=checkpointer)
