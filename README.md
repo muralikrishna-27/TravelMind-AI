@@ -8,7 +8,7 @@ Describe your trip in plain English—five specialist agents (**Flights**, **Hot
 
 ## Live Demo
 
-- **Production App:** [https://travelmind-ai-x407.onrender.com](https://travelmind-ai-x407.onrender.com)
+- **Live Here:** [https://travel-mind-ai-nu.vercel.app/](TravelMind-AI)
 
 ---
 
